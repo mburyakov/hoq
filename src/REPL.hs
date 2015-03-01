@@ -2,7 +2,7 @@ module REPL
     ( repl
     ) where
 
-import System.Console.Readline
+import System.Console.Haskeline
 import System.Exit
 import System.IO
 import Control.Monad
@@ -38,16 +38,16 @@ processCmd tab "step" str = ep tab Step str
 processCmd tab "whnf" str = ep tab WHNF str
 processCmd _ cmd _ = liftIO $ hPutStrLn stderr $ "Unknown command " ++ cmd
 
+readLine =
+  runInputT defaultSettings . getInputLine
+
 repl :: [(Name,Fixity)] -> ScopeT IO ()
-repl tab = go ""
-  where
-    go last = do
-        mline <- liftIO $ readline "> "
-        case mline of
-            Nothing   -> liftIO $ putStrLn ""
-            Just line -> case break (== ' ') line of
-                ("",_)      -> go last
-                (c:cmd,line') -> do
-                    when (line /= last) $ liftIO (addHistory line)
-                    if c == ':' then processCmd tab cmd line' else ep tab NF line
-                    go line
+repl tab = do
+    mline <- liftIO $ readLine "> "
+    case mline of
+        Nothing   -> liftIO $ putStrLn ""
+        Just line -> case break (== ' ') line of
+            ("",_)      -> repl tab
+            (c:cmd,line') -> do
+                if c == ':' then processCmd tab cmd line' else ep tab NF line
+                repl tab

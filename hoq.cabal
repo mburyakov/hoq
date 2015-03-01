@@ -55,7 +55,7 @@ executable hoq
                        bytestring >=0.10, void >= 0.6,
                        bifunctors >= 4.0,
                        array >= 0.4, pretty >=1.1,
-                       readline >=1.0
+                       haskeline >= 0.7.1
   build-tools:         happy >= 1.15 && < 2,
                        alex >= 2.3.1
   hs-source-dirs:      src
