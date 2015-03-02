@@ -38,16 +38,16 @@ processCmd tab "step" str = ep tab Step str
 processCmd tab "whnf" str = ep tab WHNF str
 processCmd _ cmd _ = liftIO $ hPutStrLn stderr $ "Unknown command " ++ cmd
 
-readLine =
-  runInputT defaultSettings . getInputLine
-
 repl :: [(Name,Fixity)] -> ScopeT IO ()
-repl tab = do
-    mline <- liftIO $ readLine "> "
+repl tab = runInputT defaultSettings loop
+ where
+  loop :: InputT (ScopeT IO) ()
+  loop = do
+    mline <- getInputLine "> "
     case mline of
-        Nothing   -> liftIO $ putStrLn ""
+        Nothing   -> lift $ liftIO $ putStrLn ""
         Just line -> case break (== ' ') line of
-            ("",_)      -> repl tab
+            ("",_)        -> loop
             (c:cmd,line') -> do
-                if c == ':' then processCmd tab cmd line' else ep tab NF line
-                repl tab
+                lift $ if c == ':' then processCmd tab cmd line' else ep tab NF line
+                loop

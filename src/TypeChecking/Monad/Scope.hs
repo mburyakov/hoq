@@ -15,6 +15,7 @@ import Control.Monad.State
 import Control.Applicative
 import Data.Maybe
 import Data.List
+import System.Console.Haskeline.MonadException
 
 import Syntax hiding (Clause)
 import Semantics
@@ -32,6 +33,17 @@ data ScopeState = ScopeState
 
 newtype ScopeT m a = ScopeT { unScopeT :: StateT ScopeState m a }
     deriving (Functor,Monad,MonadTrans,MonadIO,MonadFix,Applicative)
+
+instance MonadException m => MonadException (StateT s m) where
+    controlIO f = StateT $ \s -> controlIO $ \(RunIO run) -> let
+                        run' = RunIO (fmap (StateT . const) . run . flip runStateT s)
+			                    in fmap (flip runStateT s) $ f run'
+
+instance MonadException m => MonadException (ScopeT m) where
+     controlIO f = ScopeT $ controlIO $ \(RunIO run) -> let
+        run' = RunIO (fmap ScopeT . run . unScopeT)
+        in fmap unScopeT $ f run'
+
 
 addFunction :: Monad m => Name -> SEval -> Closed (Type Semantics) -> ScopeT m ID
 addFunction v e ty = ScopeT $ do
